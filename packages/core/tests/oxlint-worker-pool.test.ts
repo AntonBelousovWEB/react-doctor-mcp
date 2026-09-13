@@ -8,6 +8,12 @@ import {
   createOxlintWorkerPool,
   OxlintWorkerUnavailableError,
 } from "../src/runners/oxlint/oxlint-worker-pool.js";
+import {
+  buildOxlintWorkerSpawnSpec,
+  killUnadoptedOxlintWorkers,
+  prespawnOxlintWorkers,
+  takePrespawnedOxlintWorker,
+} from "../src/runners/oxlint/oxlint-worker-prespawn.js";
 import type { OxlintWorkerPool } from "../src/runners/oxlint/oxlint-worker-pool.js";
 
 // Speaks the worker protocol without oxlint: the first argument selects the
@@ -22,6 +28,17 @@ if (process.env.FAKE_WORKER_UNAVAILABLE) {
   process.send({ type: "ready" });
 }
 process.on("message", (job) => {
+  if (job.type === "probes") {
+    process.chdir(job.cwd);
+    fs.writeSync(1, JSON.stringify({
+      paths: ["src/dep.ts"],
+      existenceAnswers: ["file"],
+      traces: job.files.map((file) => ({ file, content: [0], existence: [0], ruleIds: job.ruleIds })),
+    }));
+    writeLine(1, MARKER + ":" + job.id + ":ok");
+    writeLine(2, MARKER + ":" + job.id + ":end");
+    return;
+  }
   if (job.type !== "job") return;
   const [mode, ...rest] = job.argumentsList;
   process.chdir(job.cwd);
@@ -69,6 +86,7 @@ interface FakeWorkerOutput {
 
 // Killed workers on Windows keep their cwd locked until the OS reaps them.
 const TEMPORARY_DIRECTORY_REMOVE_MAX_RETRIES = 10;
+const PRESPAWNED_WORKER_READY_SETTLE_MS = 500;
 
 const parseOutput = (stdout: string): FakeWorkerOutput => JSON.parse(stdout) as FakeWorkerOutput;
 
@@ -147,6 +165,24 @@ describe("createOxlintWorkerPool", () => {
     expect(fs.realpathSync(first.cwd)).toBe(fs.realpathSync(jobDirectoryA));
     expect(fs.realpathSync(second.cwd)).toBe(fs.realpathSync(jobDirectoryB));
     expect(pool.workerCount()).toBe(1);
+  });
+
+  it("runs a probe request as a probes job and returns its JSON result", async () => {
+    const pool = createPool();
+    const stdout = await pool.run({
+      argumentsList: [],
+      probeRequest: { files: ["src/a.tsx", "src/b.tsx"], ruleIds: ["no-barrel-import"] },
+      cwd: temporaryDirectory,
+      timeoutMs: 5_000,
+      outputMaxBytes: 1_000_000,
+      filesystemCacheEpoch: 1,
+    });
+    const result = JSON.parse(stdout);
+    expect(result.paths).toEqual(["src/dep.ts"]);
+    expect(result.existenceAnswers).toEqual(["file"]);
+    expect(result.traces.map((trace) => trace.file)).toEqual(["src/a.tsx", "src/b.tsx"]);
+    expect(result.traces[0].ruleIds).toEqual(["no-barrel-import"]);
+    await pool.close();
   });
 
   it("forwards the filesystem cache epoch to the worker", async () => {
@@ -314,5 +350,46 @@ describe("createOxlintWorkerPool", () => {
     const error: unknown = await runJob(pool, ["echo"]).catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(OxlintWorkerUnavailableError);
+  });
+
+  it("adopts a pre-spawned worker that already reported ready", async () => {
+    const spec = buildOxlintWorkerSpawnSpec({
+      nodeBinaryPath: process.execPath,
+      maxWorkers: 2,
+      workerScriptPath,
+      oxlintPackageDirectory: temporaryDirectory,
+      pluginPath: null,
+      environment: { ...process.env },
+    });
+    prespawnOxlintWorkers(spec, 1);
+    // HACK: let the fake worker boot and send its ready message before the
+    // pool exists, so adoption has to replay a message it never observed.
+    await new Promise((resolve) => setTimeout(resolve, PRESPAWNED_WORKER_READY_SETTLE_MS));
+    const pool = createPool();
+    pool.warm();
+    expect(takePrespawnedOxlintWorker(spec)).toBeNull();
+    expect(pool.workerCount()).toBe(2);
+    const output = parseOutput(await runJob(pool, ["ok", "adopted"]));
+    expect(output.rest).toEqual(["adopted"]);
+  });
+
+  it("leaves a pre-spawned worker alone when the spawn parameters differ", async () => {
+    const spec = buildOxlintWorkerSpawnSpec({
+      nodeBinaryPath: process.execPath,
+      maxWorkers: 3,
+      workerScriptPath,
+      oxlintPackageDirectory: temporaryDirectory,
+      pluginPath: null,
+      environment: { ...process.env },
+    });
+    prespawnOxlintWorkers(spec, 1);
+    const pool = createPool();
+    pool.warm();
+    expect(takePrespawnedOxlintWorker({ ...spec, args: [...spec.args] })).not.toBeNull();
+    prespawnOxlintWorkers(spec, 1);
+    killUnadoptedOxlintWorkers();
+    expect(takePrespawnedOxlintWorker(spec)).toBeNull();
+    const output = parseOutput(await runJob(pool, ["ok"]));
+    expect(output.id).toBeGreaterThan(0);
   });
 });

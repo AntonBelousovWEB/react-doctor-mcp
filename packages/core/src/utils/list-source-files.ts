@@ -1,8 +1,10 @@
-import { execFile, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { SourceFileEntry } from "../types/index.js";
 import { COOPERATIVE_YIELD_BUDGET_MS, GIT_LS_FILES_MAX_BUFFER_BYTES } from "../constants.js";
+import { buildGitSourceListingRequest, resolveGitCommand } from "../git-prefetch.js";
+import { GIT_SOURCE_LISTING_ARGUMENTS } from "../project-info/constants.js";
 import {
   collectGitLinguistIgnoredPaths,
   collectGitLinguistIgnoredPathsCooperative,
@@ -86,7 +88,7 @@ const parseGitSourceFilePaths = (output: string): GitSourceFilePaths => {
 };
 
 const listGitSourceFilePaths = (rootDirectory: string): GitSourceFilePaths | null => {
-  const result = spawnSync("git", ["ls-files", "-z", "--stage", "--others", "--exclude-standard"], {
+  const result = spawnSync("git", [...GIT_SOURCE_LISTING_ARGUMENTS], {
     cwd: rootDirectory,
     encoding: "utf-8",
     maxBuffer: GIT_LS_FILES_MAX_BUFFER_BYTES,
@@ -131,27 +133,10 @@ const listSourceFilesViaGitCooperative = async (
   rootDirectory: string,
   signal?: AbortSignal,
 ): Promise<string[] | null> => {
-  const paths = await new Promise<GitSourceFilePaths | null>((resolve, reject) => {
-    signal?.throwIfAborted();
-    execFile(
-      "git",
-      ["ls-files", "-z", "--stage", "--others", "--exclude-standard"],
-      {
-        cwd: rootDirectory,
-        encoding: "utf-8",
-        killSignal: "SIGKILL",
-        maxBuffer: GIT_LS_FILES_MAX_BUFFER_BYTES,
-        signal,
-      },
-      (error, stdout) => {
-        if (signal?.aborted) {
-          reject(signal.reason);
-          return;
-        }
-        resolve(error ? null : parseGitSourceFilePaths(stdout));
-      },
-    );
-  });
+  signal?.throwIfAborted();
+  const output = await resolveGitCommand(buildGitSourceListingRequest(rootDirectory), signal);
+  if (signal?.aborted) throw signal.reason;
+  const paths = output === null ? null : parseGitSourceFilePaths(output);
   if (paths === null) return null;
   const candidatePaths = collectGitCandidateSourceFilePaths(rootDirectory, paths);
   const linguistIgnoredPaths = await collectGitLinguistIgnoredPathsCooperative(
