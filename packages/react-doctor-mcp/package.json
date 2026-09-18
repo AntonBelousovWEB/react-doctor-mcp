@@ -1,0 +1,57 @@
+{
+  "name": "react-doctor-mcp",
+  "version": "0.9.14",
+  "description": "Model Context Protocol server for React Doctor — structured React diagnostics for coding agents.",
+  "keywords": [
+    "diagnostics",
+    "linter",
+    "mcp",
+    "model-context-protocol",
+    "react",
+    "react-doctor"
+  ],
+  "homepage": "https://github.com/millionco/react-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/millionco/react-doctor/issues"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Million Software, Inc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/millionco/react-doctor.git",
+    "directory": "packages/react-doctor-mcp"
+  },
+  "bin": {
+    "react-doctor-mcp": "./bin/react-doctor-mcp.js"
+  },
+  "files": [
+    "bin/**",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "vp pack --watch",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && cross-env NODE_ENV=production vp pack",
+    "test": "vp test run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "react-doctor": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.13.0"
+  }
+}
