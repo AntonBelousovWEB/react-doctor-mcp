@@ -31,7 +31,7 @@ describe("runScan + runDiagnostics", () => {
     expect(summary).toMatchObject({ ok: true, errors: 1 });
 
     const detail = await runDiagnostics(ctx, { directory: FAKE_ROOT_DIRECTORY, severity: "error" });
-    expect(detail).toMatchObject({ ok: true, total: 1, returned: 1 });
+    expect(detail).toMatchObject({ ok: true, total: 1, returned: 1, servedFromCache: true });
 
     expect(diagnose).toHaveBeenCalledTimes(1);
   });
@@ -40,8 +40,9 @@ describe("runScan + runDiagnostics", () => {
     const diagnose = vi.fn(async () => buildFakeResult([]));
     const ctx = buildContext(diagnose);
 
-    await runDiagnostics(ctx, { directory: FAKE_ROOT_DIRECTORY });
+    const detail = await runDiagnostics(ctx, { directory: FAKE_ROOT_DIRECTORY });
 
+    expect(detail).toMatchObject({ servedFromCache: false });
     expect(diagnose).toHaveBeenCalledTimes(1);
   });
 

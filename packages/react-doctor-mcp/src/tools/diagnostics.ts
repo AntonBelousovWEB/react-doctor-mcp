@@ -19,6 +19,7 @@ export const runDiagnostics = async (
 ): Promise<unknown> => {
   const directory = path.resolve(readRequiredString(args, "directory"));
   const cached = ctx.cache.get(directory);
+  const servedFromCache = cached !== undefined;
   const result = cached?.result ?? (await ctx.diagnose(directory));
   if (cached === undefined) {
     ctx.cache.set(directory, { result });
@@ -36,5 +37,5 @@ export const runDiagnostics = async (
     ...(rule !== undefined ? { rule } : {}),
     ...(file !== undefined ? { file } : {}),
   };
-  return resultToDiagnosticsDto(result, filter, limit);
+  return resultToDiagnosticsDto(result, filter, limit, servedFromCache);
 };

@@ -46,6 +46,7 @@ export interface DiagnosticsDto {
   total: number;
   returned: number;
   truncated: boolean;
+  servedFromCache: boolean;
   diagnostics: DiagnosticDto[];
 }
 
@@ -161,6 +162,7 @@ export const resultToDiagnosticsDto = (
   result: DiagnoseResult,
   filter: DiagnosticsFilter,
   limit: number,
+  servedFromCache: boolean,
 ): DiagnosticsDto => {
   const rootDirectory = result.project.rootDirectory;
   const matching = result.diagnostics.filter((diagnostic) =>
@@ -173,6 +175,7 @@ export const resultToDiagnosticsDto = (
     total: matching.length,
     returned: returned.length,
     truncated: matching.length > returned.length,
+    servedFromCache,
     diagnostics: returned.map((diagnostic) => diagnosticToDto(diagnostic, rootDirectory)),
   };
 };

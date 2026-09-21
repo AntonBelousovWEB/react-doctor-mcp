@@ -16,9 +16,9 @@ const DIRECTORY_PROPERTY = {
 export const TOOL_SCHEMAS: Record<string, ToolSchema> = {
   [SCAN_TOOL_NAME]: {
     description:
-      "Run React Doctor on a project directory. Returns a compact summary: 0-100 score, " +
-      "error/warning counts, affected files, top rules, category breakdown. Call ONCE per " +
-      "directory, then use react_doctor_diagnostics to drill into findings.",
+      "Run a fresh React Doctor scan on a project directory. Returns a compact summary: " +
+      "0-100 score, error/warning counts, affected files, top rules, category breakdown. " +
+      "Call ONCE per directory, then use react_doctor_diagnostics to drill into findings.",
     inputSchema: {
       type: "object",
       properties: {
@@ -39,8 +39,9 @@ export const TOOL_SCHEMAS: Record<string, ToolSchema> = {
   [DIAGNOSTICS_TOOL_NAME]: {
     description:
       "Inspect individual findings from the last react_doctor_scan of a directory (cached; " +
-      "no rescan). Filter by severity, category, rule id, or file substring. Output keys: " +
-      "file, line, col, sev, rule, title, msg, help, cat.",
+      "no rescan). Filter by severity, category, rule id, or file substring. servedFromCache " +
+      "reports whether the result is a fresh scan or a cached one. Output keys: file, line, " +
+      "col, sev, rule, title, msg, help, cat.",
     inputSchema: {
       type: "object",
       properties: {

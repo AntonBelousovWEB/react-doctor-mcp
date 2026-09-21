@@ -115,16 +115,17 @@ describe("resultToDiagnosticsDto", () => {
   ]);
 
   it("filters by severity and reports the match total", () => {
-    const dto = resultToDiagnosticsDto(result, { severity: "warning" }, 50);
+    const dto = resultToDiagnosticsDto(result, { severity: "warning" }, 50, false);
 
     expect(dto.total).toBe(2);
     expect(dto.returned).toBe(2);
     expect(dto.truncated).toBe(false);
+    expect(dto.servedFromCache).toBe(false);
     expect(dto.diagnostics.every((diagnostic) => diagnostic.sev === "warning")).toBe(true);
   });
 
   it("filters by rule substring", () => {
-    const dto = resultToDiagnosticsDto(result, { rule: "no-array-index-key" }, 50);
+    const dto = resultToDiagnosticsDto(result, { rule: "no-array-index-key" }, 50, false);
 
     expect(dto.total).toBe(2);
     expect(
@@ -133,7 +134,7 @@ describe("resultToDiagnosticsDto", () => {
   });
 
   it("filters by file substring", () => {
-    const dto = resultToDiagnosticsDto(result, { file: "App.tsx" }, 50);
+    const dto = resultToDiagnosticsDto(result, { file: "App.tsx" }, 50, false);
 
     expect(dto.total).toBe(2);
     expect(dto.diagnostics.every((diagnostic) => diagnostic.file === "src/App.tsx")).toBe(true);
@@ -144,16 +145,17 @@ describe("resultToDiagnosticsDto", () => {
       buildFakeDiagnostic({ filePath: "src/App.tsx", rule: "no-array-index-key" }),
     ]);
 
-    const dto = resultToDiagnosticsDto(relativeResult, {}, 50);
+    const dto = resultToDiagnosticsDto(relativeResult, {}, 50, false);
 
     expect(dto.diagnostics[0].file).toBe("src/App.tsx");
   });
 
   it("caps results at the limit and reports truncation", () => {
-    const dto = resultToDiagnosticsDto(result, {}, 2);
+    const dto = resultToDiagnosticsDto(result, {}, 2, true);
 
     expect(dto.total).toBe(3);
     expect(dto.returned).toBe(2);
     expect(dto.truncated).toBe(true);
+    expect(dto.servedFromCache).toBe(true);
   });
 });
