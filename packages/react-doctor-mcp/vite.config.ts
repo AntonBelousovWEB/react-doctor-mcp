@@ -14,7 +14,7 @@ export default defineConfig({
     {
       entry: { index: "./src/index.ts" },
       deps: {
-        neverBundle: ["@modelcontextprotocol/sdk", "react-doctor"],
+        neverBundle: ["@modelcontextprotocol/sdk", "effect", "react-doctor"],
       },
       plugins: [requireTypescriptPlugin()],
       dts: true,

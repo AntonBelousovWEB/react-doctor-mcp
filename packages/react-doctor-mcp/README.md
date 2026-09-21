@@ -43,6 +43,12 @@ Register it with any MCP client:
 - File paths are relativized to the project root, diagnostics carry only essential fields, and detail results are capped (default 50, max 200).
 - Compact JSON with a stable, documented key set.
 
+## Telemetry
+
+The server emits three counters to first-party Axiom metrics: `mcp.scan`, `mcp.diagnostics.cacheHit`, and `mcp.diagnostics.cacheMiss` — the cache pair is how reconnect-heavy clients surface as misses instead of silently paying for a rescan. No paths, repo identity, or secrets are attached.
+
+Opt out with `REACT_DOCTOR_NO_TELEMETRY=1` or the `--no-telemetry` flag; test runs are silent by construction.
+
 ## License
 
 Modified MIT — [Million Software, Inc](https://million.dev)

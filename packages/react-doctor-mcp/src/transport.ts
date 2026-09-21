@@ -9,6 +9,7 @@ import { isReactDoctorError } from "react-doctor/api";
 import { MAX_ERROR_MESSAGE_CHARS, MCP_SERVER_NAME } from "./constants.js";
 import { ReactDoctorMcpError } from "./errors.js";
 import { TOOL_SCHEMAS } from "./presentation/schemas.js";
+import { shutdownTelemetry, startTelemetry } from "./telemetry/runtime.js";
 import type { AppContext } from "./tools/contracts.js";
 import { TOOL_DISPATCH } from "./tools/registry.js";
 
@@ -59,7 +60,9 @@ export const buildServer = (ctx: AppContext): Server => {
 };
 
 export const run = async (ctx: AppContext): Promise<void> => {
+  startTelemetry();
   const server = buildServer(ctx);
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  await shutdownTelemetry();
 };

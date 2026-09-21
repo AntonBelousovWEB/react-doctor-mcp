@@ -1,6 +1,8 @@
 import * as path from "node:path";
 import { resultToDiagnosticsDto, type DiagnosticsFilter } from "../presentation/dto.js";
 import { InvalidArgumentsError } from "../errors.js";
+import { MCP_METRIC } from "../telemetry/constants.js";
+import { recordCount } from "../telemetry/record-metric.js";
 import type { AppContext } from "./contracts.js";
 import { readOptionalInteger, readOptionalString, readRequiredString } from "./args.js";
 
@@ -37,5 +39,6 @@ export const runDiagnostics = async (
     ...(rule !== undefined ? { rule } : {}),
     ...(file !== undefined ? { file } : {}),
   };
+  recordCount(servedFromCache ? MCP_METRIC.diagnosticsCacheHit : MCP_METRIC.diagnosticsCacheMiss);
   return resultToDiagnosticsDto(result, filter, limit, servedFromCache);
 };
