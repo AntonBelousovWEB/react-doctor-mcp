@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("../src/telemetry/record-metric.js", () => ({
   recordCount: vi.fn(),
@@ -22,11 +22,15 @@ const buildContext = (diagnose: AppContext["diagnose"]): AppContext => ({
 });
 
 describe("telemetry", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("is disabled under test", () => {
     expect(isTelemetryEnabled()).toBe(false);
   });
 
-  it("emits scan, cache-hit, and cache-miss counters", async () => {
+  it("emits scan, cache-hit, and warm cache-miss counters", async () => {
     const diagnose = vi.fn(async () =>
       buildFakeResult([
         buildFakeDiagnostic({ filePath: path.join(FAKE_ROOT_DIRECTORY, "a.tsx"), rule: "a" }),
@@ -41,6 +45,20 @@ describe("telemetry", () => {
 
     expect(recordCountMock).toHaveBeenCalledWith(MCP_METRIC.scan);
     expect(recordCountMock).toHaveBeenCalledWith(MCP_METRIC.diagnosticsCacheHit);
-    expect(recordCountMock).toHaveBeenCalledWith(MCP_METRIC.diagnosticsCacheMiss);
+    expect(recordCountMock).toHaveBeenCalledWith(MCP_METRIC.diagnosticsCacheMiss, 1, {
+      cacheWasEmpty: false,
+    });
+  });
+
+  it("stamps a cold-start miss with cacheWasEmpty true", async () => {
+    const diagnose = vi.fn(async () => buildFakeResult([]));
+    const ctx = buildContext(diagnose);
+    const recordCountMock = vi.mocked(recordCount);
+
+    await runDiagnostics(ctx, { directory: FAKE_ROOT_DIRECTORY });
+
+    expect(recordCountMock).toHaveBeenCalledWith(MCP_METRIC.diagnosticsCacheMiss, 1, {
+      cacheWasEmpty: true,
+    });
   });
 });

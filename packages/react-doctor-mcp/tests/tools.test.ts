@@ -72,6 +72,7 @@ describe("createScanCache", () => {
     cache.get("/a");
     cache.set("/c", { result });
 
+    expect(cache.size()).toBe(2);
     expect(cache.get("/b")).toBeUndefined();
     expect(cache.get("/a")).toBeDefined();
     expect(cache.get("/c")).toBeDefined();

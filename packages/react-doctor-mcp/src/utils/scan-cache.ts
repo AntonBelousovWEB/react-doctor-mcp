@@ -20,5 +20,8 @@ export const createScanCache = (maxEntries: number = MAX_CACHED_SCANS): ScanCach
         if (oldestKey !== undefined) entries.delete(oldestKey);
       }
     },
+    size() {
+      return entries.size;
+    },
   };
 };

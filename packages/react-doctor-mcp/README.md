@@ -45,7 +45,7 @@ Register it with any MCP client:
 
 ## Telemetry
 
-The server emits three counters to first-party Axiom metrics: `mcp.scan`, `mcp.diagnostics.cacheHit`, and `mcp.diagnostics.cacheMiss` — the cache pair is how reconnect-heavy clients surface as misses instead of silently paying for a rescan. No paths, repo identity, or secrets are attached.
+The server emits three counters to first-party Axiom metrics: `mcp.scan`, `mcp.diagnostics.cacheHit`, and `mcp.diagnostics.cacheMiss`. Misses carry a `cacheWasEmpty` attribute so a reconnect (cold start, empty cache) is distinguishable from a changed project (warm cache, new directory). No paths, repo identity, or secrets are attached.
 
 Opt out with `REACT_DOCTOR_NO_TELEMETRY=1` or the `--no-telemetry` flag; test runs are silent by construction.
 

@@ -12,6 +12,7 @@ export interface CachedScan {
 export interface ScanCache {
   get(directory: string): CachedScan | undefined;
   set(directory: string, cached: CachedScan): void;
+  size(): number;
 }
 
 export interface AppContext {

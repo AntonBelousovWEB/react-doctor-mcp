@@ -24,8 +24,11 @@ export const runDiagnostics = async (
   const servedFromCache = cached !== undefined;
   const result = cached?.result ?? (await ctx.diagnose(directory));
   if (cached === undefined) {
+    recordCount(MCP_METRIC.diagnosticsCacheMiss, 1, { cacheWasEmpty: ctx.cache.size() === 0 });
     ctx.cache.set(directory, { result });
     ctx.cache.set(result.project.rootDirectory, { result });
+  } else {
+    recordCount(MCP_METRIC.diagnosticsCacheHit);
   }
   const requestedLimit = readOptionalInteger(args, "limit") ?? ctx.config.defaultDiagnosticsLimit;
   const limit = Math.max(1, Math.min(requestedLimit, ctx.config.maxDiagnosticsLimit));
@@ -39,6 +42,5 @@ export const runDiagnostics = async (
     ...(rule !== undefined ? { rule } : {}),
     ...(file !== undefined ? { file } : {}),
   };
-  recordCount(servedFromCache ? MCP_METRIC.diagnosticsCacheHit : MCP_METRIC.diagnosticsCacheMiss);
   return resultToDiagnosticsDto(result, filter, limit, servedFromCache);
 };
